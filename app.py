@@ -14,16 +14,8 @@ if uploaded_file:
 # Chart 1: Bar chart of customers by country
   st.subheader("Customers by City")
   country_counts = df['customer_city'].value_counts()
-  st.write(country_counts)
+  #st.write(country_counts)
   st.bar_chart(country_counts)
-
-# Chart 2: Line chart of subscriptions over time
-  st.subheader("Trips Over Time")
-  df['Trip Date'] = pd.to_datetime(df['pickup_time']).dt.date
-  subscriptions_by_date = df.groupby('Trip Date').size().reset_index(name='Count')
-  st.line_chart(subscriptions_by_date.set_index('Trip Date'))
-  df = pd.read_csv("datasets/trips_data_1000.csv")
-  print(df.describe())
 
   cars_brand = st.sidebar.multiselect("Select the car brand", df["car_brand"].unique(),  df["car_brand"].unique())
   df = df[df["car_brand"].isin(cars_brand)]
@@ -70,9 +62,6 @@ if uploaded_file:
   st.subheader("Trips Over Time")
   Trips_Count = df["Trips Date"].value_counts()
   st.line_chart(Trips_Count)
-
-  st.write(" Preview Uploaded data")
-  st.dataframe(df.head())
 
 
 
