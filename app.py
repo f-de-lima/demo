@@ -61,3 +61,35 @@ if uploaded_file:
   st.write("Here is the preview of the Uploaded CSV: ")
   st.dataframe(df.head())
 
+#Cumulative Revenue Growth Over Time
+st.subheader("Cumulative Revenue Growth Over Time")
+cum_revenue_over_time = df.groupby('Trips Date')['revenue'].cumsum()
+st.area_chart(cum_revenue_over_time)
+
+# Trips by Car Model
+st.subheader("Trips by Car Model")
+trips_by_car_model = df['car_model'].value_counts()
+st.bar_chart(trips_by_car_model)
+
+# Average Trip Duration by City
+st.subheader("Average Trip Duration by City")
+
+df["pickup_time"] = pd.to_datetime(df["pickup_time"])
+df["dropoff_time"] = pd.to_datetime(df["dropoff_time"])
+
+df["trip_duration"] = (df["dropoff_time"] - df["pickup_time"]).dt.total_seconds() / 60
+avg_trip_duration = df.groupby('customer_city')['trip_duration'].mean()
+st.bar_chart(avg_trip_duration)
+
+# Revenue by City
+st.subheader("Revenue by City")
+revenue_by_city = df.groupby('customer_city')['revenue'].sum()
+st.bar_chart(revenue_by_city)
+
+# Bonus: Trips per Day of the Week
+st.subheader("Trips per Day of the Week")
+df['Day of Week'] = pd.to_datetime(df['pickup_time']).dt.day_name()  # Extract day name
+trips_by_day = df['Day of Week'].value_counts().reindex(
+    ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+)
+st.bar_chart(trips_by_day)
