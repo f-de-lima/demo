@@ -10,29 +10,35 @@ def load_data():
     return trips, cars, cities
 
 #load data
-load_data()
+trips, cars, cities = load_data()
 
 # Merge trips with cars (joining on car_id)
-trips_merged = trips.merge(car_id)
+trips_merged = trips.merge(cars, left_on="car_id", right_on="id")
 
 # Merge with cities for car's city (joining on city_id)
-trips_merged = trips_merged.merge(city_id)
+trips_merged = trips_merged.merge(cities, on="city_id")
 
-trips_merged = trips_merged.drop(columns=["id_car", "city_id", "id_customer","id"])
+trips_merged = trips_merged.drop(columns=["car_id", "city_id", "customer_id"])
 
-df['pickup_date'] = pd.to_datetime(df['pickup_time']).dt.date
+# Convert pickup_time to datetime and extract pickup_date
+trips_merged['pickup_time'] = pd.to_datetime(trips_merged['pickup_time'])
+trips_merged['dropoff_time'] = pd.to_datetime(trips_merged['dropoff_time'])
+trips_merged['pickup_date'] = trips_merged['pickup_time'].dt.date
 
-df['pickup_date'] = pd.to_datetime(df['pickup_time']).dt.date
-
-cars_brand = st.sidebar.multiselect("Select the Car Brand", unique(trips_merged))
-
-trips_merged = trips_merged[isin(brand)]
+cars_brand = st.sidebar.multiselect("Select the Car Brand", trips_merged['brand'].unique())
+if cars_brand:
+    trips_merged = trips_merged[trips_merged['brand'].isin(cars_brand)]
 
 # Compute business performance metrics
-total_trips = sum(trips) # Total number of trips
-total_distance = sum(distances) # Sum of all trip distances
+total_trips = len(trips_merged)
+total_distance = trips_merged['distance'].sum()
 # Car model with the highest revenue
-top_car = car_model.max(revenue)
+grouped_revenue = trips_merged.groupby('model')['revenue'].sum()
+if not grouped_revenue.empty:
+    top_car = grouped_revenue.idxmax()
+else:
+    top_car="Null"
+    print("No data available for revenue calculation.")
 # Display metrics in columns
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -42,47 +48,43 @@ with col2:
 with col3:
     st.metric(label="Total Distance (km)", value=f"{total_distance:,.2f}")
 
-st.write(dataframe(trips_merged.head()))
+st.write(trips_merged.head())
 
 #Trips Over Time
 st.subheader("Trips Over Time")
-Trips_Count = df["Trips Date"].value_counts()
+Trips_Count = trips_merged["pickup_date"].value_counts()
 st.line_chart(Trips_Count)
 
 #Revenue Per Car Model
 st.subheader("Revenue by Car Model")
-revenue_by_car = df.groupby('car_model')['revenue'].sum()
+revenue_by_car = trips_merged.groupby('model')['revenue'].sum()
 st.bar_chart(revenue_by_car)
 
 #Cumulative Revenue Growth Over Time
 st.subheader("Cumulative Revenue Growth Over Time")
-cum_revenue_over_time = df.groupby('Trips Date')['revenue'].cumsum()
+cum_revenue_over_time = trips_merged.groupby('pickup_date')['revenue'].sum().cumsum()
 st.area_chart(cum_revenue_over_time)
 
 # Trips by Car Model
 st.subheader("Trips by Car Model")
-trips_by_car_model = df['car_model'].value_counts()
+trips_by_car_model = trips_merged['model'].value_counts()
 st.bar_chart(trips_by_car_model)
 
 # Average Trip Duration by City
 st.subheader("Average Trip Duration by City")
-
-df["pickup_time"] = pd.to_datetime(df["pickup_time"])
-df["dropoff_time"] = pd.to_datetime(df["dropoff_time"])
-
-df["trip_duration"] = (df["dropoff_time"] - df["pickup_time"]).dt.total_seconds() / 60
-avg_trip_duration = df.groupby('customer_city')['trip_duration'].mean()
+trips_merged["trip_duration"] = (trips_merged["dropoff_time"] - trips_merged["pickup_time"]).dt.total_seconds() / 60
+avg_trip_duration = trips_merged.groupby('city_name')['trip_duration'].mean()
 st.bar_chart(avg_trip_duration)
 
 # Revenue by City
 st.subheader("Revenue by City")
-revenue_by_city = df.groupby('customer_city')['revenue'].sum()
+revenue_by_city = trips_merged.groupby('city_name')['revenue'].sum()
 st.bar_chart(revenue_by_city)
 
 # Trips per Day of the Week
 st.subheader("Trips per Day of the Week")
-df['Day of Week'] = pd.to_datetime(df['pickup_time']).dt.day_name()
-trips_by_day = df['Day of Week'].value_counts().reindex(
+trips_merged['Day of Week'] = pd.to_datetime(trips_merged['pickup_time']).dt.day_name()
+trips_by_day = trips_merged['Day of Week'].value_counts().reindex(
     ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 )
 st.bar_chart(trips_by_day)
